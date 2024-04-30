@@ -1,8 +1,5 @@
-# How do I change the information in the template?
-Setup/Statics.tex
+# Intro
+This is the latex & python code associated with my Master's Thesis, Bayesian
+Online Regression Markets with Varying Feature Spaces
 
-# Where can I suggest changes?
-latex-support@student.dtu.dk
 
-# Where can I go for help?
-Check http://latex.dtu.dk/ for open office hours or send your question via email (latex-support@student.dtu.dk) or Facebook messenger (https://www.facebook.com/DTULatex/)
