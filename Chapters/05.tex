@@ -1,0 +1,298 @@
+\chapter{Contributions}
+
+%TODO: I THINK I SHOULD ACTUALLY DESCRIBE REGRESSION FIRST, AND MOVE ON TO
+%CLASSIFICATION
+
+In this chapter, I will describe the contributions of this thesis.
+
+There are three contributions
+\begin{enumerate}
+  \item A regression and classification model that reconstructs missing
+    features using a linear reconstruction method.
+  \item A new seller-side market fairness property known as \emph{truthfulness
+    under imputation}.
+  \item A way of distributing revenue in a market with missing features that
+    fulfills this new fairness property 
+\end{enumerate}
+% In this chapter, I will present the central problem of dealing with missing
+% data in an online machine learning setting. I will describe several methods for
+% dealing with missing data, and lastly describe the OCDS algorithm, which is a
+% utilitarian online learning method. In the next chapter, I will compare these
+% methods and their interaction with market mechanisms.
+\section{Utilitarian Online Learning}
+I present in this section two models. One is a simple baseline model, and the
+other uses a linear reconstruction method for missing features, which is my own
+contribution. The models are 
+\begin{enumerate}
+  \item Online Linear Model (OLM) - A linear model that has a coefficient per
+    feature observed. At every timestep, the model predicts using the present
+    features, and only updates coefficients for the features that are present.
+    %TODO: I HAD AN IDEA FROM THIS. EVERY COEFFICIENT COULD SOMEHOW TRAIN ITSELF A WEIGHT, AND THE TOTAL GUESS WOULD BE (WEIGHT*COEFFICIENT DOT X_T) / SUM WEIGHT. This sucked, it was worse than OCDS
+  \item Online Linear Model with Subregressions (OLM-S) - At its base an OLM
+    model, but reconstructs missing features using more OLM models.
+\end{enumerate}
+Both models can easily be converted between regression and classification
+models, as described in section TODO. They are described in sections TODO and
+TODO, respectively.
+
+\subsection{OLM}
+The OLM (Online Linear Model) mechanism is introduced by the paper TODO:REF as
+a baseline comparison under the name Online Convex Optimization (OCO). The
+method in the paper is a classification method, but since the regression
+situation is simpler, I will describe it first.  It is a simple linear model
+with no feature reconstruction. The model has weights $w$. The paper TODO:REF
+does not go into detail with the construction of this method, so this
+implementation is my own.
+
+The idea of the model is to assume that all features are centered, and then
+realizing that mathematically, it is equivalent to mean impute missing features
+as zero, and to completely ignore missing features in all calculations. The
+model's handling of missing features is then equivalent to mean imputation, but
+computationally superior.
+
+The prediction is given by
+\begin{equation}
+  \hat y_t = \bar w^T x_t
+\end{equation}
+where $\bar w$ is the set of coefficients for the observed features $d_t$ at
+time $t$. TODO: MAKE SURE THAT $d_t$ IS EXPLAINED BEFORE THIS.
+
+The regression model minimizes the mean square error, so the optimization problem is
+\begin{equation}
+  \underset{w}{min}\, \mathcal F = \sum_t^T (\bar w^T x_t - y_t)^2
+\end{equation}
+TODO: DO I LIKE THE NOTATION WITH EQUALS HERE? HAS IT BEEN SEEN BEFORE?
+This problem is convex in $w$, so we can update the coefficients by coordinate
+gradient descent with a proper choice of step size $\tau$. TODO: REF
+
+We then get the following gradient for a single time step
+
+\begin{equation}
+  \nabla_{\bar w} \mathcal F = 2 (\bar w^T x_t - y_t) x_t = 2(\hat y_t - y_t) x_t
+\end{equation}
+
+The update step becomes
+\begin{equation}
+  \bar w := \bar w - \tau 2 (\hat y_t - y_t) x_t
+\end{equation}
+
+This is the full model in the regression case. The algorithm is described in
+algorithm \ref{alg:olm-regression} TODO: IT'S A LITTLE WEIRD TO USE THE WORD
+ALGORITHM TWICE.
+\begin{algorithm}
+  \caption{The Online Linear Model (OLM) algorithm for regression}\label{alg:olm-regression}
+  \begin{algorithmic}
+    \State $w=0$ 
+    \State Choose $\tau$
+    \For{$t \in {0,1,\dots,T}$}
+      \State Calculate $\hat y_t = \bar w^T x_t$
+      \State Update coefficients $\bar w := \bar w - \tau 2 (\hat y_t - y_t) x_t$
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
+
+To convert the model to classification, two changes are made:
+\begin{enumerate}
+  \item The loss function is changed to the Binary Cross-Entropy loss, as is
+    commonly used for classification tasks TODO:REF
+  \item The predicted value is transformed through the logistic function,
+    $h(x)=\frac{1}{1+e^{-x}}$ similarly to logistic regression TODO:REF
+\end{enumerate}
+OLM for classification is effectively an online version of logistic regression that
+takes centered inputs and mean-imputes missing features. TODO: DESCRIBE THE
+CENTERED INPUTS AND MEAN IMPUTATION STUFF
+
+The prediction changes to
+\begin{equation}
+  \hat y_t = h(\bar w^T x_t)
+\end{equation}
+where $h(x)=\frac{1}{1+e^{-x}}$ is the logistic function.
+
+The objective function minimizes the sum binary cross-entropy loss instead, becoming
+\begin{equation}
+  \mathcal F = -\frac{1}{T} \sum_t^T y_t log(\hat y_t) + (1-y_t) log(1-\hat y_t)
+\end{equation}
+
+The gradient for a single time step becomes
+\begin{align}
+  \nabla_w \mathcal F &= \nabla_w -(y_t log(\hat y_t) + (1-y_t) log(1-\hat y_t)) \\
+\end{align}
+Using the chain rule, we can split this into three parts, $\frac{\partial
+\mathcal F}{\partial \hat y_t}$, $\frac{\partial \hat y_t}{\partial h}$, and
+$\frac{\partial h}{\partial w}$. TODO: THE h PART DEFFO ISN'T RIGHT
+
+TODO: CALCULATE THE THREE PARTS
+
+
+We then get the gradient
+\begin{equation}
+  \nabla w \mathcal F = (\hat y - y) x_t
+\end{equation}
+TODO: DEAL WITH $x_t$ NOTATION
+
+Then, we can use the OLM as either a regression method or a classification
+method. The model can be trained with any other loss function as well, like the
+absolute error, by using the corresponding gradient for the update step
+instead. 
+
+TODO: STEP SIZE WORK
+
+
+
+% It is a simple
+% linear classifier with no feature reconstruction. The classifier has weights
+% $w$. The paper TODO:REF does not go into detail on the construction of this
+% method, so I decided to use the approach of logistic regression, using the TODO
+% hypothesis function and binary cross entropy loss. The predictions are then
+% given by
+%
+% \begin{equation}
+%   \hat y = h(\bar w^T x_t)
+% \end{equation}
+% where $h(a)=\frac{1}{1 + e^{-a}}$ is the sigmoid function TODO: WHAT IS THIS
+% FUNCTION CALLED? and $\bar w$ is the coefficients for the observed features
+% $d_t$ at time step $t$.
+%
+% This is a convex optimization problem, so we can guarantee convergence with a suitable choice of time step. The optimization problem becomes
+%
+% \begin{equation}
+%   \underset{w}{\text{argmin} \mathcal F} = y_t log(\hat y_t) + (1-y_t) log(1-\hat y_t)
+% \end{equation}
+%
+% The partial derivative $\nabla_w \mathcal F$ is given by
+% \begin{equation}
+%   \nabla_w \mathcal F = y_t \frac{1}{h(\bar w^T x_t)} + (1-y_t) TODO THIS SUCKS
+% \end{equation}
+%
+% The update equation for the weights $w$ is then
+% \begin{equation}
+%   w := w - \tau \nabla_w \mathcal F
+% \end{equation}
+\subsection{OLM-S}
+The handling of missing data in OLM is equivalent to mean imputation. To
+improve performance, missing features could be reconstructed based on the
+observed features. For example, each feature could have an OLM regression
+trained that predicts that feature based on present features. I name these
+reconstructing regressions \emph{subregressions}, and name the model using this
+approach the Online Linear Model with Subregressions (OLM-S). 
+
+TODO:FIGURE 
+
+TODO
+
+
+\begin{algorithm}
+  \caption{The Online Linear Model with Subregressions (OLM-S) algorithm for regression}\label{alg:olm-s-regression}
+  \begin{algorithmic}
+    \State $w=0$ 
+    \State Choose $\tau$
+    \For{$t \in {0,1,\dots,T}$}
+      \State Acquire $Gr_t$ from $G$ and present features TODO
+      \State Estimate missing features as $\tilde x_t = x_t Gr_t$
+      \State Calculate $\hat y_t = w^T x_t$ TODO: BOTH RECONSTRUCTED AND OBSERVED IN $x_t$
+      \State Update $Gr_t$ by reconstruction loss TODO: REF EQUATION
+      \State Update coefficients $w := w - \tau 2 (\hat y_t - y_t) x_t$ TODO: BOTH RECONSTRUCTED AND OBSERVED IN $x_t$
+    \EndFor
+
+  \end{algorithmic}
+\end{algorithm}
+
+% \subsubsection{Converting to regression}
+% TODO: I DO THIS IN THEIR OWN SECTIONS INSTEAD. MAYBE 'CONVERTING OCDS' TO REGRESSION
+% The OLM and OCDS models can be converted to regression models by
+% changing the loss function to MSE and passing in continuous values for $y_t$
+% instead of categorical values (either $-1$ and $1$ for the original
+% implementation of OCDS or $0$ and $1$ for the versions using a logistic
+% regression approach.)
+%
+% The OLM prediction then becomes
+% \begin{equation}
+%   \hat y = \bar w^T x_t
+% \end{equation}
+%
+% and the update equation becomes
+%
+% \begin{equation}
+%   w := w - 2 \tau (\hat y_t - y_t)
+% \end{equation}
+%
+% The OCDS prediction and update becomes equivalent to the classification version
+% using MSE.
+
+\subsubsection{Step Sizes}
+
+Step sizes are an important consideration for these methods. TODO:REF PAPER
+OCDS suggests a step size of $\tau=\frac{1}{\sqrt{t}}$. I propose that this is
+not a good choice, since this method is supposed to work for any change in
+feature spaces, so the method should not be different for a feature
+entering at time step $t=0$ and at time step $t=1000$. Therefore, I have
+decided to instead use fixed step sizes as a hyperparameter. TODO This does not guarantee convergence TODO.
+
+% He et al. (2019) TODO: REFERENCE introduces a Utilitarian online learning model
+% known as the OCDS algorithm. It is a feature correlation method. It creates and
+% evolves a linear classifier with weights $w$. It then also creates a linear
+% mapping from the observed feature space $X_t$ to the universal feature space
+% $U_t$ named $\psi : X_t \rightarrow U_t$. The linear mapping is understood as a
+% generative graph, where every vertex in the graph is a feature in the universal
+% feature space. The vertices then have out-edges to every other vertex that they
+% have appeared in concert with, and the weight of these out-edges represent the
+% feature relatedness. %TODO: EXPLAIN
+% %BETTER
+% %
+% The paper defines a vertex approximator $\Phi_i$, which is a vector that for
+% feature $i$ holds every out-edge in the graph. The matrix $G \in
+% \mathbb{R}^{|U_t| \times |U_t|}$ holds the vertex approximators for every
+% feature as rows so that the reconstructed features are given by $\psi(x_t)=
+% \sum_{i \in X_t} \Phi_i x_{i} $. The prediction then uses the observed features
+% where available and reconstructed features where not, and uses these two
+% classifiers in an ensemble. The weights are split in two, $\bar w_t$ and
+% $\tilde w_t$, where $\bar w_t$ refers to the weights for the observed instance
+% features $x_t$, and $\tilde w_t$ refers to the weights for the unobserved
+% instance features. $\tilde x_t$ refers to the reconstruction of the features in
+% the universal feature space not observed at time $t$, and $p$ is a weight for
+% the ensemble, determining the impact of the observed features and the
+% unobserved features. TODOTODO \begin{equation} \hat y= p \langle \bar w_t,
+% x_t\rangle + (1-p) \langle \tilde w_t, \tilde x_t \rangle \end{equation} The
+% predicted class is then given by the sign of $\hat y$, and $p$ is updated. $w$
+% and $G$ are updated by gradient descent, and the problem is biconvex, so
+% convergence is guaranteed with a proper choice of step size. %TODO: THERE
+% %SHOULD MAYBE BE EVEN MORE OCDS TODO: FIGURE OUT WHAT TO DO RELATING TO LOSS
+% %FUNCTIONS AND SIGNS AND STUFF
+
+
+\section{Markets \& Missing Data}
+TODO
+% Shapley values and stuff like that?
+
+
+% Only using the supervised loss here
+%
+% TODO: Everything here also works great with any other loss function, so maybe write it in terms of the loss function instead
+% \begin{equation}
+%     \underset{G,w}{\text{argmin}}\, \mathbb{E} \lbrack (y_t - w^T\, Gr\, x)^2 \rbrack
+% \end{equation}
+% If someone is reporting false information $x+\eta$, where $\eta$ is finite-variance noise, then
+% \begin{align}
+%      & \mathbb{E}\lbrack (y_t - (w+\delta w)^T (Gr + \delta Gr) (x+\eta))^2 \rbrack                                      &                                   \\
+%      & = \mathbb{E} \lbrack (y_t - (w + \delta w)^T (Gr + \delta Gr) x - (w + \delta w)^T (Gr + \delta Gr)\eta)^2\rbrack &                                   \\
+%      & \geq \mathbb{E} \lbrack (y_t - (w + \delta w)^T (Gr + \delta Gr) x)^2 \rbrack                                     & \text{noise term, convex}         \\
+%      & \geq \mathbb{E} \lbrack (y_t - w^T\, Gr\, x)^2\rbrack                                                             & \text{Since this is opt solution}
+% \end{align}
+% TODO: I DIDN'T DEAL WITH NON-CENTERED NOISE
+%
+% TODO: WITH RECONSTRUCTION ERROR
+%
+% Using the reconstruction error, we get
+% \begin{equation}
+%     \underset{G,w}{\text{argmin}}\, \mathbb{E} \lbrack (y_t - w^T\, Gr \, x)^2 + \alpha \|Gr \, x - \Pi_{\mathbf{R}^{d_t}} Gr \, x\|_2^2\rbrack
+% \end{equation}
+% TODO: REST OF RECONSTRUCTION ERROR
+% \begin{equation}
+%     \underset{w}{\text{argmin}} \,\, \mathbb{E}\lbrack(y_t - w^T \, Gr \, x)^2 \rbrack= \underset{w}{\text{argmin}}\,\, \mathbb{E}\lbrack (y_t - V^T \, x)^2\rbrack
+% \end{equation}
+% where $V = Gr^T w$
+%
+% I basically have conclusive proof that OCDS is lying, since they clain 82.7\%
+% accuracy on German where a logreg using >50\% of the data only gets ~75\%, so
+% that's kind of fucked. TODO: THIS HAS TO NOT GO INTO THE FINAL REPORT
+%
