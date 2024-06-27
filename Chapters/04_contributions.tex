@@ -1,0 +1,227 @@
+
+\chapter{Contributions}
+
+In this chapter, I will describe the contributions of this thesis to the field
+of analytics markets and online regression models. I present three findings:
+\begin{enumerate}
+  \item A new utilitarian online learning model using linear reconstruction of missing features.
+  \item A new market property known as truthfulness under imputation.
+  \item A method for revenue distribution that fulfills our desired market properties in the case of varying feature spaces.
+\end{enumerate}
+
+\section{Online Linear Model with Subregressions (OLM-S)}
+
+The Online Linear Model with Subregressions (OLM-S) algorithm is a model that I
+have developed myself. The model is a linear model at the base like the OLM
+model, using stochastic gradient descent for the coefficient update step. The
+new part of this model is the imputation method. It maintains an OLM regression
+model trained for every feature in the model to predict that feature. When
+features are missing, it then imputes each missing feature using its OLM
+regression model. An overview of its function is shown in figure TODO: FIGURE
+
+The simplest way to understand OLM-S is in terms of these sub OLM models used
+to reconstruct missing features, but it can also represented by letting a
+matrix G contain the weights for the OLM models. Then, the optimization problem
+solved by the model can be expressed succinctly by the following two equations:
+
+\begin{equation}
+  \underset{w}{\text {argmin}} \sum_{t}^{T} ( l(w^T x_t + w^T Gr_t x_t, y_t) )
+\end{equation}
+
+TODO: FINISH EQUATION WITH PROJECTION OPERATOR
+\begin{align}
+  \underset{G}{\text {argmin}} &\sum_{t}^{T} ( (Gr_t x_t, x_t) )
+  \text{s.t.} & G_{i,i} = 0 \,\, \forall i \in u_t
+\end{align}
+
+Both of these optimization problems are convex so we can guarantee convergence
+using stochastic gradient descent with a certain choice of step size. TODO:
+BICONVEXITY NOT TRUE SINCE WE DONT TAKE DERIV GIVEN GR IN MATHCAL F. The update
+step using stochastic gradient descent becomes
+
+\begin{equation}
+  w = w - \tau_1 \nabla_w \mathcal F \,\,\,\, G = G - \tau_2 \nabla_G \mathcal G
+\end{equation}
+TODO: INVESTIGATE SPECIFICATION OF G PROBLEM
+
+TODO: STUFF WITH THE MATHCAL F/G COS TWO DIFFERENT OPTIMIZATION PROBLEMS
+where $\tau_1$ and $\tau_2$ are two step sizes, see the note on step sizes in
+section TODO.
+
+TODO: MATHEMATICAL EXPLANATION \& FIGURES
+
+One advantage of the OLM-S model is that the reconstruction can be trained
+independently of the true regression targets. This means that in time-ahead
+prediction situations, the reconstruction can be trained for every time step up
+to prediction time, and sometimes even later if features are available further
+ahead in time. This increases the total amount of data that the reconstruction
+mechanism can learn from.
+
+The prediction step of the algorithm is laid out in algorithm TODO, the update
+of the predictor or base model is in algorithm TODO, and the update of the
+reconstruction is in algorithm TODO.
+
+
+\section{Model Candidates}
+
+Based on our preliminaries, we can now establish what model we need for our
+market with varying feature spaces. We need:
+
+\begin{enumerate}
+  \item A regression model.
+  \item That can be updated in an online fashion.
+  \item And deals with varying feature spaces.
+  \item And is linear in the input features \& minimizing a convex loss
+    function.
+\end{enumerate}
+
+First, I intended to use a model from the survey article TODO. The simplest
+model that fulfilled my requirements was the OCDS model. The only issue is that
+it is a classification model, but as mentioned, classification and regression
+models are two sides of the same coin, and the model could be easily modified
+to instead be a regression model. TODO THIS SHOULD BE IN PRELIM
+
+\subsection{OLM}
+
+Looking over the OLM model, we see that it is a regression model that can be
+updated in an online fashion, works with varying feature spaces, and is linear
+in the input features. It also minimizes a convex loss function. It is then a
+valid choice for a market model.
+
+\subsection{OLM-S}
+
+In this section, I will show that the OLM-S model is a valid candidate for a
+market model. It is clearly a regression model that updates in an online
+fashion, allowing varying feature spaces. It also reconstructs these missing
+features, which we expect to improve its performance when feature spaces
+change. Let us look at the representation of OLM-S shown in the optimization
+problem in equation TODO:REF again and see if we can also fulfill the fourth
+requirement of linearity. 
+
+\begin{align}
+  \underset{w}{\text {argmin}} \sum_{t}^{T} ( l(w^T x_t + w^T Gr_t x_t, y_t) ) \\
+  = \underset{w}{\text {argmin}} \sum_{t}^{T} ( l(w^T z_t, y_t) ) \,\,\,\, \text{ where } z_t = (Gr_t + I) x_t\\
+\end{align}
+
+Since $z_t$ results from a linear transformation of the input features $x_t$ at
+every time step $t$, the problem is linear in the input features. We have also
+assumed that the loss function is convex, so our model requirements are
+fulfilled, and choosing OLM-S as the market model will give rise to our desired
+market properties.
+
+\subsection{OCDS}
+
+The OCDS model is online and deals with varying feature spaces, and it is also
+linear in the input features through an argument similar to the one for OLM-S.
+Unfortunately, it is not a regression model, but instead a classification
+model. Luckily, converting the OCDS model to regression is very simple. Where
+the label prediction was before made as the sign of the prediction $\hat y$,
+this step can simply be removed, and OCDS becomes a regression method. The
+provided targets are now continuous values in the space $\mathbb R$, instead of
+discrete values of $-1$ and $1$.
+
+Then, OCDS is a valid candidate for a market model as well. Note that I do not
+look at the OVFM model in terms of market properties, but it is a further development of OCDS.
+
+\subsection{OLVF}
+The OLVF cannot easily have its loss function changed and retain the same
+operation, unilke the OCDS, OLM-S, and OLM models. The loss function is a hinge
+loss with a slack variable. Buyers in the market would then need to pay for a
+reduction in this loss function if the OLVF was employed as the market model.
+Minimizing a hinge loss with a slack variable is not a loss function that
+immediately translates to common real-life problems, so buyers would not want
+to pay for it directly. TODO:REF
+
+TODO THIS MIGHT GO SINCE WE WON'T BE TESTING IT ANYWAY
+
+
+\section{Truthfulness Under Imputation}
+We have a number of market properties that we want to hold. Previously, we
+defined truthfulness as incentivizing market participants to report their true
+features to the market as opposed to adding gaussian noise to their feature.
+Now, we have expanded the strategy space by allowing market participants to
+report their feature as missing and letting the model used in the market handle
+the missing feature.
+
+This introduces a new challenge. Sellers with a missing feature now have the
+option to impute their missing feature using historical information, e.g. mean
+imputation. This can deteriorate the machine learning model used by the market
+as compared to its own inbuilt handling of missing features. Since this
+historically based imputation is uninformative, it would be unfair to allocate
+payment to these sellers. To address this, a fair market must incentivize
+participants to truthfully report their features as missing. I term this
+property truthfulness under imputation since it refers to a market
+incentivizing truthfulness even when imputation is in the strategy space. A
+market satisfying this property is fair in the face of missing data.
+
+\subsection{Shapley Value Allocation for Missing Features}
+
+We know that we can get a fair distribution using Shapley value allocations.
+However, within the context of variable feature space, the straightforward
+Shapley value allocation will also have us calculate Shapley values for the
+missing features. We will actually expect negative Shapley values for missing
+features, TODO: WHY, so sellers in the market will be forced to pay an amount
+back to the market in the situation that they do not have data available. This
+could be seen as unwanted, since it means that sellers can be forced to pay
+even though they are not in the market anymore, so participating in the market
+carries future risk.
+
+For this reason, I investigated two alternative allocation methods below that
+however both turned out not to work. In the end, you have to use Shapley values
+and penalize owners of missing features for a Shapley fair allocation method.
+See section TODO of the results for results on the risks incurred by market
+participants regarding payoffs with missing features.
+
+% We do not want to pay sellers for not participating in the market, nor can we
+% go out and penalize sellers that no longer participate in case of a negative
+% Shapley value. Therefore, we need a new strategy for Shapley value
+% calculations when some features are missing.
+
+\subsubsection{Alternative Allocation Idea - Distributing Shapley Values}
+
+When reconstructing a missing feature using linear reconstruction, one idea
+could be to reassign Shapley values from the main model to the features used to
+reconstruct a missing feature. With this approach, we might e.g. have three
+features in our overall model. At time step $t$, feature $1$ is missing. It
+gets assigned some Shapley value $\psi_1$. In the subregression used to
+reconstruct feature $1$, feature $2$ and $3$ then get Shapley values
+$\psi_{1,2}$ \& $\psi_{1,3}$. We would then split out the Shapley value in the
+overall model from feature $1$ onto features $2$ and $3$ based on their Shapley
+value in the subregression. See figure TODO for a diagram of the situation.
+TODO: THIS IDEA SHOULD BE EXPLAINED AND ILLUSTRATED BETTER
+
+The subregression Shapley value is not possible to find, though, since we do
+not know the true value of the missing feature 1. We can keep a historical
+average or moving average Shapley value and assume that the historical Shapley
+values are a good approximation of the new Shapley value, but there is no
+direct way to observe the true Shapley value when reconstructing a feature.
+
+However, even if it were possible to calculate, this distribution method would
+not be fair. A missing feature is expected to have a Shapley value below 0
+TODO. In this case, we are penalizing features for contributing a lot to the
+reconstruction of this feature, which is not sensible. Therefore, this approach is discarded.
+
+\subsubsection{Alternative Allocation Idea - Ignoring Missing Features}
+
+Another possibility is to only calculate Shapley values based on present
+features. The Shapley value calculation then only investigates the coalitions
+for the features that are present. It will also result in truthfulness under
+imputation, which will be shown in section TODO. However, this isn't a Shapley
+fair distribution method. This will allow actors to damage the market by
+providing features correlated with other market features, and then letting them
+go missing later, deteriorating market performance without paying for this
+reduction in performance.
+
+TODO: WHAT MORE TO SAY
+
+TODO: I SHOULD ALSO WRITE ABOUT THE FACT THAT WE EXPECT THE OPTIMAL REGRESSOR TO BE THE REGRESSOR WHERE ONLY THE PRESENT FEATURES ARE USED. BUT THAT TURNED OUT BAD THO??
+
+\subsection{Truthfulness Under Imputation for Linear Reconstruction Models}
+
+In this section, I prove that truthfulness under imputation holds for markets
+based on models that use linear reconstruction to impute missing features and
+Shapley value revenue distribution.
+
+TODO: PROVE
+Mean imputation is not informative for predictive purposes, so the expected
+Shapley value is 0 or lower (TODO: PROVE THIS).

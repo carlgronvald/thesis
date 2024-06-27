@@ -1,0 +1,96 @@
+%
+% \chapter{Literature Review}
+% In this chapter, I will introduce and discuss literature relating to both
+% analytics markets and online regression methods with varying feature spaces.
+%
+% \section{Online Machine Learning}
+%
+% Online machine learning is the field of machine learning models that work not
+% on a batch of data in one go, but instead receiving data in a streaming
+% fashion. Online learning is usually based on an iterative updating of model
+% parameters one or a few time steps at a time TODO:REF. While in batch learning
+% we minimize some loss function over the dataset, online learning has the concept
+% of regret minimization TODO:REF. Regret is the idea of how much lower the sum
+% loss could have been if the model had chosen some other set of parameters from
+% the beginning. TODO: I'M NOT SURE REGRET SHOULD BE INTRODUCED HERE, ITS TOO COMPLI
+%
+% An online version of linear regression is seen already in TODO:REF FIRST ONLINE
+% LR. Online learning often focuses on hardware with limited capabilities, where
+% training on an entire dataset at the same time would not fit in memory. Many
+% tabular machine learning methods can be appropriated as online learning methods
+% for this case, as seen in TODO: REF. Non-linear methods like decision trees can
+% also be trained in an online fashion. This is e.g. seen in TODO:REF, where a
+% version of online random forest models known as Mondrian forests is
+% introduced.
+%
+% Online learning also allows for the model to adapt to changes in the underlying
+% data, i.e. a non-stationary distribution. This can be done by exponential
+% regretting algorithms TODO:REF
+%
+% \subsection{Online Learning with Varying Feature Spaces}
+%
+% Varying feature spaces present new problems for online learning mechanisms
+% regarding how to deal with missing and newly appearing features. Several
+% state-of-the-art online learning models that support varying feature spaces are
+% presented in the survey article TODO:REF, where they name this subfield
+% Utilitarian Online Learning.
+%
+% They present six models. Example models are: the OCDS model from TODO:REF which
+% is a linear model and uses a linear mapping to reconstruct missing features by
+% a generative graph approach; the OLVF model from TODO:REF which projects
+% features into a shared space and uses slack and a hinge loss to only update
+% once it has more information on new features TODO:CHECK IF TRUE; and the OVFM,
+% which is a development of OCDS that attempts to improve how it deals with
+% ordinal features.
+%
+% Utilitarian online learning has also been seen in semi-supervised settings in
+% the OSLMF algorithm TODO: REF, where regression targets are only occasionally
+% available. It is also a development on OCDS TODO:CHECK. Bayesian regression can
+% also be performed in an online fashion by conditioning a Bayesian model on each
+% incoming observation, as seen in TODO.
+%
+% \section{Analytics Markets}
+%
+% Analytics markets already exist theoretically in several forms, as mentioned.
+% They belong to the study of information economics, which is a field that
+% studies the effects of information on decision making, and how information
+% behaves as a good in the market TODO:REF. Information as a good is classified
+% most importantly by the fact that replicating it is essentially of no cost.
+% Then, once one person acquires some information, they can freely replicate it.
+% This complicates many microeconomic problems, like that of pricing a good,
+% since regular goods are usually priced by how much one is willing to pay to
+% gain exclusive access to it.
+%
+% \subsection{Revenue Distribution}
+%
+% Revenue distribution between sellers in analytics markets is most often done in
+% literature using the Shapley value. However, one open problem in the literature
+% is the problem of robustness to replication, first introduced in TODO: REF
+% AGARWAHL. Robustness to replication is a new market property that relates to
+% the outcome of a seller replicating their data and selling it several times in
+% the market. Agarwahl et al. noted that in their setup, a seller could get a
+% larger part of the revenue in a market by duplicating their own data, meaning
+% that their setup is not robust to replication.
+%
+% Shapley values, however, exist in two variants, the observational and
+% interventional Shapley values. Observational Shapley values are found by
+% retraining the model with different available sets of features, while
+% interventional Shapley values are found by leaving the model the same but
+% setting features equal to their mean. The paper TODO: REF AGARWAHL uses
+% observational Shapley values, but TODO:REF FALCO shows using the interventional
+% Shapley value is actually robust to replication. However, the interventional
+% Shapley value comes with more risk involved for feature sellers, especially if
+% their features are highly correlated with other features present in the
+% datasets.
+%
+% \subsection{Variants of Analytics Markets}
+%
+% Analytics markets have been seen in many variants in literature, especially
+% with regards to which model is used by the market. TODO:REF PINSON proved that
+% under some assumptions, any linear model minimizing a convex loss function can
+% give rise to a fair market. TODO:REF 1 and 2 develop markets based on
+% the LASSO regression and TODO. TODO:REF THOMAS develops a market based on a
+% probabilistic forecasting method using Bayesian regression. TODO: REF PINSON
+% also extended the market to the online setting with streaming features, using
+% an exponentially smoothed Shapley value and splitting the market into an
+% in-sample part and an out-of-sample part.
